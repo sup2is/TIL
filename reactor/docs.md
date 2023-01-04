@@ -157,13 +157,80 @@ Flux: 0...N 개의 리액티브 시퀀스를 표현
 
 Mono: 0..1개의 값을 표현
 
+![Mono](https://projectreactor.io/docs/core/release/reference/images/mono.svg)
+
 Flux와 Mono중 어떤것을 사용할지 결정하는 방법은 실제 요소가 얼마나 있는지로 판단하면됨 예를 들어 HTTP Request 같은 경우 한번 호출하고 그 결과도 하나이므로 Mono를 사용하는게 더 좋음
 
 
 
+Mono와  Flux를 사용하는 가장 쉬운 방법 => 팩토리 메서드를 사용하기
+
+```
+Flux<String> seq1 = Flux.just("foo", "bar", "foobar");
+
+List<String> iterable = Arrays.asList("foo", "bar", "foobar");
+Flux<String> seq2 = Flux.fromIterable(iterable);
+```
+
+```
+Mono<String> noData = Mono.empty(); 
+
+Mono<String> data = Mono.just("foo");
+
+Flux<Integer> numbersFromFiveToSeven = Flux.range(5, 3); 
+```
 
 
 
+다양한 subscribe 변형 메서드를 통해서 구독할 수 있음
+
+```
+subscribe(); 
+
+subscribe(Consumer<? super T> consumer); 
+
+subscribe(Consumer<? super T> consumer,
+          Consumer<? super Throwable> errorConsumer); 
+
+subscribe(Consumer<? super T> consumer,
+          Consumer<? super Throwable> errorConsumer,
+          Runnable completeConsumer); 
+
+subscribe(Consumer<? super T> consumer,
+          Consumer<? super Throwable> errorConsumer,
+          Runnable completeConsumer,
+          Consumer<? super Subscription> subscriptionConsumer); 
+```
 
 
+
+람다를 기반으로한 모든 subscribe는 리턴으로 **Disposable**을 리턴한다. **Disposable**은 dispose() 메서드를 통해 구독을 취소할 수 있다. 
+
+**Disposables** 의 **composite** 메서드 => 여러 disposable을 composite해서 한번에 종료시킬 수 있다.
+
+
+
+----
+
+BaseSubscriber를 직접 구현해서 제공해주는 훅 메서드를 통해 구독을 커스텀할 수 있다.
+
+```
+Flux.range(1, 10)
+    .doOnRequest(r -> System.out.println("request of " + r))
+    .subscribe(new BaseSubscriber<Integer>() {
+
+      @Override
+      public void hookOnSubscribe(Subscription subscription) {
+        request(1);
+      }
+
+      @Override
+      public void hookOnNext(Integer integer) {
+        System.out.println("Cancelling after having received " + integer);
+        cancel();
+      }
+    });
+```
+
+BaseSubscriber를 직접 구현할 때는 얼마만큼의 용량을 처리할 수 있는지 고민해야하고 hookOnNext()에서는 최소한개의 request를 요청해야한다.
 

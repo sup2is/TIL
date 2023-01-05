@@ -234,3 +234,71 @@ Flux.range(1, 10)
 
 BaseSubscriber를 직접 구현할 때는 얼마만큼의 용량을 처리할 수 있는지 고민해야하고 hookOnNext()에서는 최소한개의 request를 요청해야한다.
 
+
+
+limitRate와 limitRequset로 upstream, downstream 간의 요청을 직접 조정할 수 있다.
+
+일반적으로 downstream에서 request는 Long.MAX_VALUE 만큼 요청을 한다.
+
+```
+Flux.range(1, 100)
+    .log()
+    .subscribe { println(it) }
+    
+[ INFO] (main) | request(unbounded)
+[ INFO] (main) | onNext(1)
+1
+[ INFO] (main) | onNext(2)
+2
+[ INFO] (main) | onNext(3)
+3
+[ INFO] (main) | onNext(4)
+...
+
+```
+
+이때 upstream에서 데이터를 방출하는게 downstream이 소비하는 속도보다 빠르거나 upstream의 데이터소스가 한번에 우르르 몰리면 순간적으로 downstream에서 대기하는? 데이터요소가 많아지게 되고 이는 비효율적인 상황이 된다.
+
+이때 limitRate를 걸면 된다.
+
+```
+Flux.range(1, 100)
+    .log()
+    .delaySequence(Duration.ofMillis(100))
+    .limitRate(10)
+    .subscribe(System.out::println);
+    
+[ INFO] (main) | request(10)
+[ INFO] (main) | onNext(1)
+[ INFO] (main) | onNext(2)
+[ INFO] (main) | onNext(3)
+[ INFO] (main) | onNext(4)
+[ INFO] (main) | onNext(5)
+[ INFO] (main) | onNext(6)
+[ INFO] (main) | onNext(7)
+[ INFO] (main) | onNext(8)
+[ INFO] (main) | onNext(9)
+[ INFO] (main) | onNext(10)
+1
+2
+3
+4
+5
+6
+7
+8
+[ INFO] (parallel-1) | request(8)
+[ INFO] (parallel-1) | onNext(11)
+[ INFO] (parallel-1) | onNext(12)
+[ INFO] (parallel-1) | onNext(13)
+[ INFO] (parallel-1) | onNext(14)
+[ INFO] (parallel-1) | onNext(15)
+[ INFO] (parallel-1) | onNext(16)
+[ INFO] (parallel-1) | onNext(17)
+[ INFO] (parallel-1) | onNext(18)
+```
+
+똑똑한게 limitRate의 75%만큼의 데이터를 소비하면  upstream한테 다시 75%만큼의 데이터를 요청한다. 
+
+limitRequest는 downstream 요청을 n개만큼 제한하고 onComplete를 실행하는데 limitRequest는 deprecated되었고 take 쓰면 된다.
+

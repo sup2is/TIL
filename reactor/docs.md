@@ -302,3 +302,66 @@ Flux.range(1, 100)
 
 limitRequest는 downstream 요청을 n개만큼 제한하고 onComplete를 실행하는데 limitRequest는 deprecated되었고 take 쓰면 된다.
 
+----
+
+
+
+Flux.generate() 사용 예제
+
+```
+fun main() {
+    Flux.generate(
+        { 0 }
+    ) { state, sink ->
+        sink.next("3 x $state = ${state.times(3)}")
+        if (state == 10) sink.complete()
+        state + 1
+    }.subscribe {
+        println(it)
+    }
+}
+3 x 0 = 0
+3 x 1 = 3
+3 x 2 = 6
+3 x 3 = 9
+3 x 4 = 12
+3 x 5 = 15
+3 x 6 = 18
+3 x 7 = 21
+3 x 8 = 24
+3 x 9 = 27
+3 x 10 = 30
+```
+
+뭔가 마지막에 리소스를 release 시키거나 .. 커넥션을 종료시키고 싶을땐?
+
+
+
+```
+fun main() {
+    Flux.generate(
+        { 0 },
+        { state, sink ->
+            sink.next("3 x $state = ${state.times(3)}")
+            if (state == 10) sink.complete()
+            state + 1
+        }
+    ) {
+        println("handle... $it")
+    }.subscribe {
+        println(it)
+    }
+}
+3 x 0 = 0
+3 x 1 = 3
+3 x 2 = 6
+3 x 3 = 9
+3 x 4 = 12
+3 x 5 = 15
+3 x 6 = 18
+3 x 7 = 21
+3 x 8 = 24
+3 x 9 = 27
+3 x 10 = 30
+handle... 11
+```

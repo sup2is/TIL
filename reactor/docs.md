@@ -302,3 +302,149 @@ Flux.range(1, 100)
 
 limitRequest는 downstream 요청을 n개만큼 제한하고 onComplete를 실행하는데 limitRequest는 deprecated되었고 take 쓰면 된다.
 
+----
+
+
+
+Flux.generate() 사용 예제
+
+```
+fun main() {
+    Flux.generate(
+        { 0 }
+    ) { state, sink ->
+        sink.next("3 x $state = ${state.times(3)}")
+        if (state == 10) sink.complete()
+        state + 1
+    }.subscribe {
+        println(it)
+    }
+}
+3 x 0 = 0
+3 x 1 = 3
+3 x 2 = 6
+3 x 3 = 9
+3 x 4 = 12
+3 x 5 = 15
+3 x 6 = 18
+3 x 7 = 21
+3 x 8 = 24
+3 x 9 = 27
+3 x 10 = 30
+```
+
+뭔가 마지막에 리소스를 release 시키거나 .. 커넥션을 종료시키고 싶을땐?
+
+
+
+```
+fun main() {
+    Flux.generate(
+        { 0 },
+        { state, sink ->
+            sink.next("3 x $state = ${state.times(3)}")
+            if (state == 10) sink.complete()
+            state + 1
+        }
+    ) {
+        println("handle... $it")
+    }.subscribe {
+        println(it)
+    }
+}
+3 x 0 = 0
+3 x 1 = 3
+3 x 2 = 6
+3 x 3 = 9
+3 x 4 = 12
+3 x 5 = 15
+3 x 6 = 18
+3 x 7 = 21
+3 x 8 = 24
+3 x 9 = 27
+3 x 10 = 30
+handle... 11
+```
+
+
+
+
+
+---
+
+
+
+Flux.create는 멀티스레드에서 넘어오는 데이터를 방출할때 사용한다.
+
+create는 이벤트 리스너 기반의 비동기 API를 bridge할때 유용하게 사용할 수 있다.
+
+create는 코드 자체를 비동기화하는것은 아니기 때문에 long-blocking create lambda는 pipeline에 락을 잡을 수 있다. (테스트를 못해보겠어서 뭔지 모르겠음)
+
+create 로 비동기 API를 연결할때 backpressure를 사용할 수 있으므로 **OverflowStrategy** 로 backpressure 방식을 구체화할 수 있다
+
+- **IGNORE**: downstream backpressure requests 를 무시. downstream 큐가 가득찼을때 **IllegalStateException**가 발생할 수 있다.
+- **ERROR** downstream이 upstream의 속도를 따라갈 수 없을 때 **IllegalStateException**를 발생
+- **DROP**: downstream이 수신할 준비가 되지 않은 경우 신호를 drop
+- **LATEST**: downstream이 upstream의 최신 신호만 받음
+- **BUFFER**: (기본값) downstream이 신호를 받을 수 없어도 일단 모든 신호를 버퍼함 **OutOfMemoryError** 발생할 수도 있음
+
+
+
+create vs generate (https://www.baeldung.com/java-flux-create-generate)
+
+
+
+
+
+| Flux Create                                                  | Flux Generate                                         |
+| ------------------------------------------------------------ | ----------------------------------------------------- |
+| *Consumer<FluxSink\>*                                        | *Consumer<SynchronousSink\>* 를 사용한다              |
+| consumer call을 한번만 한다                                  | downstream에서 필요에따라  cosumer 콜을 여러번한다    |
+| consumer는 0..N 요소를 방출할 수 있다                        | 오직 한개의 요소만 방출할 수 있다.                    |
+| publisher는 downstream의 상태를 모르기때문에 Overflow strategy 로 흐름 제어를 허용한다. | publisher는 downstream 의 필요에따라 요소를 생성한다. |
+| *FluxSink*는 멀티스레드를 사용하여 요소를 방출할 수 있다.    | 한번에 하나의 요소만 방출한다.                        |
+
+
+
+그냥 간단하게 뭔가 backpressure를 사용해야하고 요소가 끊임없이 쏟아지는 경우 create 사용. 하지만 이때 OverflowStrategy를 잘 짜야할듯? 이거 아니면 그냥  generate 사용
+
+
+
+
+
+---
+
+
+
+Flux.push는 generate와 create의 중간 지점. 단일 생성자의 이벤트를 프로세싱할때 효과적이다. (create는 멀티)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

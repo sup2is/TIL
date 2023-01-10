@@ -363,7 +363,6 @@ fun main() {
 3 x 8 = 24
 3 x 9 = 27
 3 x 10 = 30
-handle... 11
 ```
 
 
@@ -417,34 +416,6 @@ create vs generate (https://www.baeldung.com/java-flux-create-generate)
 
 
 Flux.push는 generate와 create의 중간 지점. 단일 생성자의 이벤트를 프로세싱할때 효과적이다. (create는 멀티)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
